@@ -1,6 +1,9 @@
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/destination_provider.dart';
+import '../providers/trip_provider.dart';
 import '../theme/app_colors.dart';
 import 'add_itinerary_screen.dart';
 import 'edit_itinerary_screen.dart';
@@ -19,117 +22,204 @@ class MyTripsScreen extends StatelessWidget {
         ),
         backgroundColor: AppColors.background,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Container(
+      body: Consumer2<TripProvider, DestinationProvider>(
+        builder: (context, tripProvider, destinationProvider, child) {
+          final trips = tripProvider.trips;
+          final favorites = destinationProvider.favorites;
+
+          return ListView(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  AppColors.ocean,
-                  AppColors.turquoise,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      AppColors.ocean,
+                      AppColors.turquoise,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.luggage_rounded,
+                      color: Colors.white,
+                      size: 35,
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Your Journey Starts Here!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      'Organize your favorite Bali destinations.',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Planned Trips',
+                    style: TextStyle(
+                      color: AppColors.dark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddItineraryScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add New'),
+                  ),
                 ],
               ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.luggage_rounded,
+              if (trips.isEmpty)
+                const Card(
                   color: Colors.white,
-                  size: 35,
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Your Journey Starts Here!',
-                  style: TextStyle(
+                  child: Padding(
+                    padding: EdgeInsets.all(22),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.event_note_rounded,
+                          size: 42,
+                          color: AppColors.muted,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'No trips planned yet',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dark,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Start planning your Bali adventure!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...trips.map(
+                  (trip) => Card(
                     color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Color(0x2264CCC5),
+                        child: Icon(
+                          Icons.luggage_rounded,
+                          color: AppColors.ocean,
+                        ),
+                      ),
+                      title: Text(
+                        trip.destinationName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${trip.visitDate.day}/'
+                        '${trip.visitDate.month}/'
+                        '${trip.visitDate.year} • ${trip.status}',
+                      ),
+                      trailing: trip.id == null
+                          ? null
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.edit_rounded,
+                                color: AppColors.ocean,
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditItineraryScreen(
+                                      destinationName:
+                                          trip.destinationName,
+                                      travelDate:
+                                          trip.visitDate.toString(),
+                                      notes: trip.notes,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
                   ),
                 ),
-                SizedBox(height: 5),
-                Text(
-                  'Organize your favorite Bali destinations.',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+              const SizedBox(height: 24),
               const Text(
-                'Planned Trips',
+                'Favorite Destinations',
                 style: TextStyle(
                   color: AppColors.dark,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AddItineraryScreen(),
+              const SizedBox(height: 10),
+              if (favorites.isEmpty)
+                const Card(
+                  color: Colors.white,
+                  child: Padding(
+                    padding: EdgeInsets.all(18),
+                    child: Text(
+                      'Belum ada destinasi favorit. '
+                      'Tambahkan favorit melalui halaman Explore.',
+                      style: TextStyle(color: AppColors.muted),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Add New'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Card(
-            color: Colors.white,
-            child: ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0x2264CCC5),
-                child: Icon(
-                  Icons.waves_rounded,
-                  color: AppColors.ocean,
-                ),
-              ),
-              title: const Text(
-                'Pantai Kelingking',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: const Text('20 November 2026'),
-              trailing: IconButton(
-                icon: const Icon(
-                  Icons.edit_rounded,
-                  color: AppColors.ocean,
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const EditItineraryScreen(
-                        destinationName: 'Pantai Kelingking',
-                        travelDate: '20 November 2026',
-                        notes: 'Explore Nusa Penida',
+                  ),
+                )
+              else
+                ...favorites.map(
+                  (destination) => Card(
+                    color: Colors.white,
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.favorite,
+                        color: AppColors.coral,
+                      ),
+                      title: Text(destination.name),
+                      subtitle: Text(destination.location),
+                      trailing: IconButton(
+                        onPressed: () {
+                          destinationProvider.toggleFavorite(
+                            destination.id,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.favorite,
+                          color: AppColors.coral,
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Contoh perjalanan sementara. Fitur penyimpanan dan pengelolaan data akan dibuat pada tahap database dan CRUD.',
-            style: TextStyle(
-              color: AppColors.muted,
-              fontSize: 12,
-              height: 1.5,
-            ),
-          ),
-        ],
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

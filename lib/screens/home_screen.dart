@@ -1,9 +1,27 @@
 
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'package:provider/provider.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../models/destination.dart';
+import '../providers/destination_provider.dart';
+import '../theme/app_colors.dart';
+import 'detail_screen.dart';
+import 'explore_screen.dart';
+import 'profile_screen.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  String _selectedCategory = 'Semua';
+  String _searchQuery = '';
 
   static const List<Map<String, dynamic>> categories = [
     {
@@ -28,84 +46,198 @@ class HomeScreen extends StatelessWidget {
     },
   ];
 
-  static const List<Map<String, dynamic>> destinations = [
-    {
-      'name': 'Pantai Kelingking',
-      'location': 'Nusa Penida',
-      'rating': '4.9',
-      'icon': Icons.waves_rounded,
-      'color': Color(0xFF64CCC5),
-      'tag': 'Popular',
-    },
-    {
-      'name': 'Pura Lempuyang',
-      'location': 'Karangasem',
-      'rating': '4.8',
-      'icon': Icons.temple_hindu_rounded,
-      'color': Color(0xFFFFB86B),
-      'tag': 'Culture',
-    },
-    {
-      'name': 'Tegallalang Rice Terrace',
-      'location': 'Gianyar',
-      'rating': '4.8',
-      'icon': Icons.landscape_rounded,
-      'color': Color(0xFF7BC67E),
-      'tag': 'Nature',
-    },
-  ];
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _openExplore() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ExploreScreen(),
+      ),
+    );
+  }
+
+  void _openProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProfileScreen(),
+      ),
+    );
+  }
+
+  void _openDetail(Destination destination) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetailScreen(destination: destination),
+      ),
+    );
+  }
+
+  List<Destination> _filterDestinations(
+    List<Destination> destinations,
+  ) {
+    return destinations.where((destination) {
+      final matchesCategory = _selectedCategory == 'Semua' ||
+          destination.category.toLowerCase() ==
+              _selectedCategory.toLowerCase();
+
+      final query = _searchQuery.toLowerCase();
+
+      final matchesSearch =
+          destination.name.toLowerCase().contains(query) ||
+          destination.location.toLowerCase().contains(query);
+
+      return matchesCategory && matchesSearch;
+    }).toList();
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filter Destinasi',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.dark,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Pilih kategori destinasi yang ingin kamu jelajahi.',
+                style: TextStyle(color: AppColors.muted),
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  'Semua',
+                  ...categories.map(
+                    (category) => category['name'] as String,
+                  ),
+                ].map((category) {
+                  final selected = _selectedCategory == category;
+
+                  return ChoiceChip(
+                    label: Text(category),
+                    selected: selected,
+                    selectedColor:
+                        AppColors.turquoise.withValues(alpha: 0.3),
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                      Navigator.pop(sheetContext);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final screenWidth = constraints.maxWidth;
-            final isCompact = screenWidth < 600;
-            final isExpanded = screenWidth >= 900;
-            final isWide = !isCompact;
+        child: Consumer<DestinationProvider>(
+          builder: (context, provider, child) {
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+                final isCompact = screenWidth < 600;
+                final isExpanded = screenWidth >= 900;
+                final isWide = !isCompact;
 
-            final destinationColumns = isExpanded ? 3 : 2;
+                final columns = isExpanded ? 3 : 2;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 30),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1180),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isCompact ? 0 : 24,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(isWide),
-                        _buildSearchBar(isWide),
-                        _buildHeroBanner(isWide),
-                        _buildSectionTitle(
-                          'Explore Categories',
-                          'See all',
-                          isWide,
+                final filteredDestinations =
+                    _filterDestinations(provider.destinations);
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 30),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxWidth: 1180),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isCompact ? 0 : 24,
                         ),
-                        _buildCategories(isWide),
-                        _buildSectionTitle(
-                          'Popular Destinations',
-                          'View all',
-                          isWide,
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            _buildHeader(isWide),
+                            _buildSearchBar(isWide),
+                            _buildHeroBanner(isWide),
+                            _buildSectionTitle(
+                              'Explore Categories',
+                              'See all',
+                              isWide,
+                              _openExplore,
+                            ),
+                            _buildCategories(isWide),
+                            _buildSectionTitle(
+                              'Popular Destinations',
+                              'View all',
+                              isWide,
+                              _openExplore,
+                            ),
+                            if (provider.isLoading &&
+                                provider.destinations.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(40),
+                                child: Center(
+                                  child:
+                                      CircularProgressIndicator(),
+                                ),
+                              )
+                            else if (provider.error != null &&
+                                provider.destinations.isEmpty)
+                              _buildError(provider)
+                            else if (filteredDestinations.isEmpty)
+                              _buildEmptyState()
+                            else
+                              _buildDestinations(
+                                destinations: filteredDestinations,
+                                provider: provider,
+                                isCompact: isCompact,
+                                columns: columns,
+                                isExpanded: isExpanded,
+                              ),
+                            _buildTravelTip(isWide),
+                          ],
                         ),
-                        _buildDestinations(
-                          isCompact: isCompact,
-                          columns: destinationColumns,
-                          isExpanded: isExpanded,
-                        ),
-                        _buildTravelTip(isWide),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),
@@ -164,17 +296,21 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.turquoise.withValues(alpha: 0.2),
+          Material(
+            color: AppColors.turquoise.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              onTap: _openProfile,
               borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.person_rounded,
-              color: AppColors.ocean,
-              size: 28,
+              child: const SizedBox(
+                width: 48,
+                height: 48,
+                child: Icon(
+                  Icons.person_rounded,
+                  color: AppColors.ocean,
+                  size: 28,
+                ),
+              ),
             ),
           ),
         ],
@@ -191,6 +327,12 @@ class HomeScreen extends StatelessWidget {
         22,
       ),
       child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.trim();
+          });
+        },
         decoration: InputDecoration(
           hintText: 'Search your destination...',
           hintStyle: const TextStyle(
@@ -201,20 +343,25 @@ class HomeScreen extends StatelessWidget {
             Icons.search_rounded,
             color: AppColors.ocean,
           ),
-          suffixIcon: Container(
-            margin: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.ocean,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.tune_rounded,
-              color: Colors.white,
+          suffixIcon: IconButton(
+            onPressed: _showFilterSheet,
+            icon: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: AppColors.ocean,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.tune_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(18),
             borderSide: BorderSide.none,
@@ -268,7 +415,7 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         ElevatedButton(
-          onPressed: () {},
+          onPressed: _openExplore,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: AppColors.ocean,
@@ -349,6 +496,7 @@ class HomeScreen extends StatelessWidget {
     String title,
     String action,
     bool isWide,
+    VoidCallback onTap,
   ) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -368,12 +516,15 @@ class HomeScreen extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          Text(
-            action,
-            style: const TextStyle(
-              color: AppColors.ocean,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+          TextButton(
+            onPressed: onTap,
+            child: Text(
+              action,
+              style: const TextStyle(
+                color: AppColors.ocean,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -409,39 +560,62 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildCategoryItem(Map<String, dynamic> category) {
     final color = category['color'] as Color;
+    final name = category['name'] as String;
+    final isSelected = _selectedCategory == name;
 
     return SizedBox(
       width: 76,
-      child: Column(
-        children: [
-          Container(
-            width: 62,
-            height: 62,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.17),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              category['icon'] as IconData,
-              color: color,
-              size: 29,
-            ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            setState(() {
+              _selectedCategory =
+                  isSelected ? 'Semua' : name;
+            });
+          },
+          child: Column(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: color.withValues(
+                    alpha: isSelected ? 0.4 : 0.17,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: isSelected
+                      ? Border.all(color: color, width: 2)
+                      : null,
+                ),
+                child: Icon(
+                  category['icon'] as IconData,
+                  color: color,
+                  size: 29,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                name,
+                style: TextStyle(
+                  color: AppColors.dark,
+                  fontSize: 12,
+                  fontWeight: isSelected
+                      ? FontWeight.w800
+                      : FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            category['name'] as String,
-            style: const TextStyle(
-              color: AppColors.dark,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildDestinations({
+    required List<Destination> destinations,
+    required DestinationProvider provider,
     required bool isCompact,
     required int columns,
     required bool isExpanded,
@@ -458,7 +632,10 @@ class HomeScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             return SizedBox(
               width: 205,
-              child: _buildDestinationCard(destinations[index]),
+              child: _buildDestinationCard(
+                destinations[index],
+                provider,
+              ),
             );
           },
         ),
@@ -478,148 +655,254 @@ class HomeScreen extends StatelessWidget {
           childAspectRatio: isExpanded ? 1.35 : 1.15,
         ),
         itemBuilder: (context, index) {
-          return _buildDestinationCard(destinations[index]);
+          return _buildDestinationCard(
+            destinations[index],
+            provider,
+          );
         },
       ),
     );
   }
 
-  Widget _buildDestinationCard(Map<String, dynamic> destination) {
-    final color = destination['color'] as Color;
+  Widget _buildDestinationCard(
+    Destination destination,
+    DestinationProvider provider,
+  ) {
+    final color = _categoryColor(destination.category);
+    final icon = _categoryIcon(destination.category);
+    final isFavorite = provider.isFavorite(destination.id);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.dark.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    color.withValues(alpha: 0.75),
-                    color,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
+        onTap: () => _openDetail(destination),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.dark.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
               ),
-              child: Stack(
-                children: [
-                  Center(
-                    child: Icon(
-                      destination['icon'] as IconData,
-                      size: 75,
-                      color: Colors.white.withValues(alpha: 0.9),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        color.withValues(alpha: 0.75),
+                        color,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
                   ),
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        destination['tag'] as String,
-                        style: const TextStyle(
-                          color: AppColors.dark,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Icon(
+                          icon,
+                          size: 75,
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
-                    ),
-                  ),
-                  const Positioned(
-                    top: 10,
-                    right: 10,
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.favorite_border_rounded,
-                        color: AppColors.coral,
-                        size: 18,
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            destination.rating >= 4.8
+                                ? 'Popular'
+                                : destination.category,
+                            style: const TextStyle(
+                              color: AppColors.dark,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  destination['name'] as String,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.dark,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: CircleAvatar(
+                          radius: 17,
+                          backgroundColor: Colors.white,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              provider.toggleFavorite(
+                                destination.id,
+                              );
+                            },
+                            icon: Icon(
+                              isFavorite
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: AppColors.coral,
+                              size: 19,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                Row(
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.location_on_rounded,
-                      size: 13,
-                      color: AppColors.muted,
-                    ),
-                    const SizedBox(width: 3),
-                    Expanded(
-                      child: Text(
-                        destination['location'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                    const Icon(
-                      Icons.star_rounded,
-                      color: AppColors.sunny,
-                      size: 15,
-                    ),
                     Text(
-                      destination['rating'] as String,
+                      destination.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.dark,
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 13,
+                          color: AppColors.muted,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            destination.location,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: AppColors.sunny,
+                          size: 15,
+                        ),
+                        Text(
+                          destination.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: AppColors.dark,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Color _categoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'pantai':
+        return const Color(0xFF64CCC5);
+      case 'alam':
+        return const Color(0xFF7BC67E);
+      case 'budaya':
+        return const Color(0xFFFFB86B);
+      case 'kuliner':
+        return const Color(0xFFFF8585);
+      default:
+        return AppColors.ocean;
+    }
+  }
+
+  IconData _categoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'pantai':
+        return Icons.waves_rounded;
+      case 'alam':
+        return Icons.landscape_rounded;
+      case 'budaya':
+        return Icons.temple_hindu_rounded;
+      case 'kuliner':
+        return Icons.restaurant_rounded;
+      default:
+        return Icons.place_rounded;
+    }
+  }
+
+  Widget _buildError(DestinationProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.error,
+              size: 38,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              provider.error ?? 'Terjadi kesalahan.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: provider.loadDestinations,
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Padding(
+      padding: EdgeInsets.all(30),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 42,
+              color: AppColors.muted,
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Destinasi tidak ditemukan.',
+              style: TextStyle(color: AppColors.muted),
+            ),
+          ],
+        ),
       ),
     );
   }

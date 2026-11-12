@@ -1,44 +1,14 @@
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../models/destination.dart';
+import '../providers/destination_provider.dart';
 import '../theme/app_colors.dart';
 import 'detail_screen.dart';
 
 class ExploreScreen extends StatelessWidget {
   const ExploreScreen({super.key});
-
-  static const List<Map<String, dynamic>> destinations = [
-    {
-      'name': 'Pantai Kelingking',
-      'location': 'Nusa Penida',
-      'rating': '4.9',
-      'description':
-          'Pantai Kelingking terkenal dengan tebing berbentuk seperti T-Rex dan pemandangan laut yang indah.',
-      'icon': Icons.waves_rounded,
-      'color': Color(0xFF64CCC5),
-      'category': 'Pantai',
-    },
-    {
-      'name': 'Pura Lempuyang',
-      'location': 'Karangasem',
-      'rating': '4.8',
-      'description':
-          'Pura Lempuyang merupakan salah satu tempat wisata budaya terkenal di Bali dengan pemandangan Gunung Agung.',
-      'icon': Icons.temple_hindu_rounded,
-      'color': Color(0xFFFFB86B),
-      'category': 'Budaya',
-    },
-    {
-      'name': 'Tegallalang Rice Terrace',
-      'location': 'Gianyar',
-      'rating': '4.8',
-      'description':
-          'Tegallalang menawarkan pemandangan sawah berundak yang hijau dan suasana alam yang menenangkan.',
-      'icon': Icons.landscape_rounded,
-      'color': Color(0xFF7BC67E),
-      'category': 'Alam',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -50,45 +20,79 @@ class ExploreScreen extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppColors.background,
-        elevation: 0,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final columns = constraints.maxWidth >= 900
-              ? 3
-              : constraints.maxWidth >= 600
-                  ? 2
-                  : 1;
-
-          if (columns == 1) {
-            return ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: destinations.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _destinationCard(
-                    context,
-                    destinations[index],
-                  ),
-                );
-              },
+      body: Consumer<DestinationProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
             );
           }
 
-          return GridView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: destinations.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.95,
-            ),
-            itemBuilder: (context, index) {
-              return _destinationCard(
-                context,
-                destinations[index],
+          if (provider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(provider.error!),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: provider.loadDestinations,
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (provider.destinations.isEmpty) {
+            return const Center(
+              child: Text('Belum ada destinasi tersedia.'),
+            );
+          }
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 900
+                  ? 3
+                  : constraints.maxWidth >= 600
+                      ? 2
+                      : 1;
+
+              if (columns == 1) {
+                return ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: provider.destinations.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _destinationCard(
+                        context,
+                        provider.destinations[index],
+                        provider,
+                      ),
+                    );
+                  },
+                );
+              }
+
+              return GridView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: provider.destinations.length,
+                gridDelegate:
+                    SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.95,
+                ),
+                itemBuilder: (context, index) {
+                  return _destinationCard(
+                    context,
+                    provider.destinations[index],
+                    provider,
+                  );
+                },
               );
             },
           );
@@ -99,14 +103,14 @@ class ExploreScreen extends StatelessWidget {
 
   Widget _destinationCard(
     BuildContext context,
-    Map<String, dynamic> destination,
+    Destination destination,
+    DestinationProvider provider,
   ) {
-    final color = destination['color'] as Color;
+    final isFavorite = provider.isFavorite(destination.id);
 
     return Card(
       color: Colors.white,
       clipBehavior: Clip.antiAlias,
-      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -127,16 +131,9 @@ class ExploreScreen extends StatelessWidget {
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      color.withValues(alpha: 0.7),
-                      color,
-                    ],
-                  ),
-                ),
+                color: _categoryColor(destination.category),
                 child: Icon(
-                  destination['icon'] as IconData,
+                  _categoryIcon(destination.category),
                   size: 75,
                   color: Colors.white,
                 ),
@@ -147,16 +144,33 @@ class ExploreScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    destination['name'] as String,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.dark,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          destination.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dark,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () {
+                          provider.toggleFavorite(destination.id);
+                        },
+                        icon: Icon(
+                          isFavorite
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: AppColors.coral,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
                   Row(
                     children: [
                       const Icon(
@@ -167,7 +181,7 @@ class ExploreScreen extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          destination['location'] as String,
+                          destination.location,
                           style: const TextStyle(
                             color: AppColors.muted,
                             fontSize: 12,
@@ -179,11 +193,11 @@ class ExploreScreen extends StatelessWidget {
                         size: 16,
                         color: AppColors.sunny,
                       ),
-                      Text(destination['rating'] as String),
+                      Text(destination.rating.toString()),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'Lihat detail',
                     style: TextStyle(
                       color: AppColors.ocean,
@@ -198,5 +212,27 @@ class ExploreScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _categoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'pantai':
+        return AppColors.turquoise;
+      case 'budaya':
+        return AppColors.coral;
+      default:
+        return AppColors.ocean;
+    }
+  }
+
+  IconData _categoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'pantai':
+        return Icons.waves_rounded;
+      case 'budaya':
+        return Icons.temple_hindu_rounded;
+      default:
+        return Icons.landscape_rounded;
+    }
   }
 }
