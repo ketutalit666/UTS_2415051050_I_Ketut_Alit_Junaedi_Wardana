@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'screens/home_screen.dart';
+import 'screens/main_page.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -18,7 +18,7 @@ class BaliTripApp extends StatelessWidget {
       title: 'BaliTrip',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const HomeScreen(),
+      home: const MainPage(),
     );
   }
 }
