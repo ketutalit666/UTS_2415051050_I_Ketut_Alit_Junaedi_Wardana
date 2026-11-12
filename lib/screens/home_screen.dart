@@ -6,10 +6,26 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   static const List<Map<String, dynamic>> categories = [
-    {'name': 'Pantai', 'icon': Icons.beach_access_rounded, 'color': Color(0xFF64CCC5)},
-    {'name': 'Alam', 'icon': Icons.park_rounded, 'color': Color(0xFF7BC67E)},
-    {'name': 'Budaya', 'icon': Icons.museum_rounded, 'color': Color(0xFFFFB86B)},
-    {'name': 'Kuliner', 'icon': Icons.restaurant_rounded, 'color': Color(0xFFFF8585)},
+    {
+      'name': 'Pantai',
+      'icon': Icons.beach_access_rounded,
+      'color': Color(0xFF64CCC5),
+    },
+    {
+      'name': 'Alam',
+      'icon': Icons.park_rounded,
+      'color': Color(0xFF7BC67E),
+    },
+    {
+      'name': 'Budaya',
+      'icon': Icons.museum_rounded,
+      'color': Color(0xFFFFB86B),
+    },
+    {
+      'name': 'Kuliner',
+      'icon': Icons.restaurant_rounded,
+      'color': Color(0xFFFF8585),
+    },
   ];
 
   static const List<Map<String, dynamic>> destinations = [
@@ -44,29 +60,67 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              _buildSearchBar(),
-              _buildHeroBanner(),
-              _buildSectionTitle('Explore Categories', 'See all'),
-              _buildCategories(),
-              _buildSectionTitle('Popular Destinations', 'View all'),
-              _buildDestinations(),
-              _buildTravelTip(),
-            ],
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final screenWidth = constraints.maxWidth;
+            final isCompact = screenWidth < 600;
+            final isExpanded = screenWidth >= 900;
+            final isWide = !isCompact;
+
+            final destinationColumns = isExpanded ? 3 : 2;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 30),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1180),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 0 : 24,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(isWide),
+                        _buildSearchBar(isWide),
+                        _buildHeroBanner(isWide),
+                        _buildSectionTitle(
+                          'Explore Categories',
+                          'See all',
+                          isWide,
+                        ),
+                        _buildCategories(isWide),
+                        _buildSectionTitle(
+                          'Popular Destinations',
+                          'View all',
+                          isWide,
+                        ),
+                        _buildDestinations(
+                          isCompact: isCompact,
+                          columns: destinationColumns,
+                          isExpanded: isExpanded,
+                        ),
+                        _buildTravelTip(isWide),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isWide) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 20, 22, 12),
+      padding: EdgeInsets.fromLTRB(
+        isWide ? 8 : 22,
+        20,
+        isWide ? 8 : 22,
+        12,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -81,17 +135,17 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 5),
-                const Text(
+                Text(
                   'Discover Bali',
                   style: TextStyle(
                     color: AppColors.dark,
-                    fontSize: 27,
+                    fontSize: isWide ? 32 : 27,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(
                       Icons.location_on_rounded,
                       size: 15,
@@ -128,9 +182,14 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(bool isWide) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+      padding: EdgeInsets.fromLTRB(
+        isWide ? 8 : 22,
+        14,
+        isWide ? 8 : 22,
+        22,
+      ),
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Search your destination...',
@@ -165,12 +224,74 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner(bool isWide) {
+    final heroContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            'YOUR NEXT ADVENTURE',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 17),
+        Text(
+          'Explore the Beauty\nof Bali Island',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isWide ? 30 : 24,
+            height: 1.2,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 9),
+        Text(
+          'Find amazing places and create\nunforgettable memories.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.9),
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 18),
+        ElevatedButton(
+          onPressed: () {},
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: AppColors.ocean,
+            elevation: 0,
+            minimumSize: const Size(125, 42),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(13),
+            ),
+          ),
+          child: const Text(
+            'Explore Now',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 22),
+      padding: EdgeInsets.symmetric(horizontal: isWide ? 8 : 22),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(22),
+        padding: EdgeInsets.all(isWide ? 30 : 22),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [
@@ -190,95 +311,60 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -8,
-              bottom: -15,
-              child: Icon(
-                Icons.beach_access_rounded,
-                size: 125,
-                color: Colors.white.withValues(alpha: 0.16),
+        child: isWide
+            ? Row(
+                children: [
+                  Expanded(flex: 3, child: heroContent),
+                  const Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Icon(
+                        Icons.beach_access_rounded,
+                        size: 150,
+                        color: Color(0x55FFFFFF),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Stack(
+                children: [
+                  Positioned(
+                    right: -8,
+                    bottom: -15,
+                    child: Icon(
+                      Icons.beach_access_rounded,
+                      size: 125,
+                      color: Colors.white.withValues(alpha: 0.16),
+                    ),
+                  ),
+                  heroContent,
+                ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'YOUR NEXT ADVENTURE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 17),
-                const Text(
-                  'Explore the Beauty\nof Bali Island',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    height: 1.2,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Text(
-                  'Find amazing places and create\nunforgettable memories.',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 12,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.ocean,
-                    elevation: 0,
-                    minimumSize: const Size(125, 42),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                  ),
-                  child: const Text(
-                    'Explore Now',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title, String action) {
+  Widget _buildSectionTitle(
+    String title,
+    String action,
+    bool isWide,
+  ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 28, 22, 16),
+      padding: EdgeInsets.fromLTRB(
+        isWide ? 8 : 22,
+        28,
+        isWide ? 8 : 22,
+        16,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.dark,
-              fontSize: 18,
+              fontSize: isWide ? 20 : 18,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -295,205 +381,257 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategories() {
+  Widget _buildCategories(bool isWide) {
+    if (isWide) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Wrap(
+          spacing: 22,
+          runSpacing: 16,
+          children: categories.map(_buildCategoryItem).toList(),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 105,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 22),
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 15),
-        itemBuilder: (context, index) {
-          final category = categories[index];
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: 15),
+        itemBuilder: (context, index) =>
+            _buildCategoryItem(categories[index]),
+      ),
+    );
+  }
 
-          return SizedBox(
-            width: 76,
-            child: Column(
-              children: [
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: (category['color'] as Color).withValues(alpha: 0.17),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(
-                    category['icon'] as IconData,
-                    color: category['color'] as Color,
-                    size: 29,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  category['name'] as String,
-                  style: const TextStyle(
-                    color: AppColors.dark,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+  Widget _buildCategoryItem(Map<String, dynamic> category) {
+    final color = category['color'] as Color;
+
+    return SizedBox(
+      width: 76,
+      child: Column(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.17),
+              borderRadius: BorderRadius.circular(20),
             ),
-          );
+            child: Icon(
+              category['icon'] as IconData,
+              color: color,
+              size: 29,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            category['name'] as String,
+            style: const TextStyle(
+              color: AppColors.dark,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDestinations({
+    required bool isCompact,
+    required int columns,
+    required bool isExpanded,
+  }) {
+    if (isCompact) {
+      return SizedBox(
+        height: 225,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          scrollDirection: Axis.horizontal,
+          itemCount: destinations.length,
+          separatorBuilder: (context, index) =>
+              const SizedBox(width: 15),
+          itemBuilder: (context, index) {
+            return SizedBox(
+              width: 205,
+              child: _buildDestinationCard(destinations[index]),
+            );
+          },
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: destinations.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          crossAxisSpacing: 18,
+          mainAxisSpacing: 18,
+          childAspectRatio: isExpanded ? 1.35 : 1.15,
+        ),
+        itemBuilder: (context, index) {
+          return _buildDestinationCard(destinations[index]);
         },
       ),
     );
   }
 
-  Widget _buildDestinations() {
-    return SizedBox(
-      height: 225,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        scrollDirection: Axis.horizontal,
-        itemCount: destinations.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 15),
-        itemBuilder: (context, index) {
-          final destination = destinations[index];
-          final color = destination['color'] as Color;
+  Widget _buildDestinationCard(Map<String, dynamic> destination) {
+    final color = destination['color'] as Color;
 
-          return Container(
-            width: 205,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.dark.withValues(alpha: 0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.dark.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    color.withValues(alpha: 0.75),
+                    color,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          color.withValues(alpha: 0.75),
-                          color,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: Icon(
-                            destination['icon'] as IconData,
-                            size: 75,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                        Positioned(
-                          top: 12,
-                          left: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              destination['tag'] as String,
-                              style: const TextStyle(
-                                color: AppColors.dark,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const Positioned(
-                          top: 10,
-                          right: 10,
-                          child: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: Colors.white,
-                            child: Icon(
-                              Icons.favorite_border_rounded,
-                              color: AppColors.coral,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                      ],
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Icon(
+                      destination['icon'] as IconData,
+                      size: 75,
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        destination['name'] as String,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        destination['tag'] as String,
                         style: const TextStyle(
                           color: AppColors.dark,
-                          fontSize: 13,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_rounded,
-                            size: 13,
-                            color: AppColors.muted,
-                          ),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: Text(
-                              destination['location'] as String,
-                              style: const TextStyle(
-                                color: AppColors.muted,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                          const Icon(
-                            Icons.star_rounded,
-                            color: AppColors.sunny,
-                            size: 15,
-                          ),
-                          Text(
-                            destination['rating'] as String,
-                            style: const TextStyle(
-                              color: AppColors.dark,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
+                  const Positioned(
+                    top: 10,
+                    right: 10,
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.favorite_border_rounded,
+                        color: AppColors.coral,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  destination['name'] as String,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.dark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_rounded,
+                      size: 13,
+                      color: AppColors.muted,
+                    ),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        destination['location'] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.star_rounded,
+                      color: AppColors.sunny,
+                      size: 15,
+                    ),
+                    Text(
+                      destination['rating'] as String,
+                      style: const TextStyle(
+                        color: AppColors.dark,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTravelTip() {
+  Widget _buildTravelTip(bool isWide) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(22, 28, 22, 10),
+      margin: EdgeInsets.fromLTRB(
+        isWide ? 8 : 22,
+        28,
+        isWide ? 8 : 22,
+        10,
+      ),
       padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3DD),
