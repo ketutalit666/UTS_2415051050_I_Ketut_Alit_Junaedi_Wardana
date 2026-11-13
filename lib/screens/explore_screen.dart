@@ -346,123 +346,187 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _destinationCard(
-    Destination destination,
-    DestinationProvider provider,
-  ) {
-    final isFavorite = provider.isFavorite(destination.id);
+  
+    Widget _destinationCard(
+      Destination destination,
+      DestinationProvider provider,
+    ) {
+      final isFavorite = provider.isFavorite(destination.id);
+      final categoryColor = _categoryColor(destination.category);
 
-    return Card(
-      color: Colors.white,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: InkWell(
-        onTap: () => _openDetail(destination),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      _categoryColor(destination.category)
-                          .withValues(alpha: 0.75),
-                      _categoryColor(destination.category),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Icon(
-                  _categoryIcon(destination.category),
-                  size: 75,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          destination.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.dark,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: isFavorite
-                            ? 'Hapus dari favorit'
-                            : 'Tambahkan ke favorit',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => _toggleFavorite(
-                          destination,
-                          provider,
-                        ),
-                        icon: Icon(
-                          isFavorite
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          color: AppColors.coral,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: AppColors.muted,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          destination.location,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.muted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 16,
-                        color: AppColors.sunny,
-                      ),
-                      Text(destination.rating.toStringAsFixed(1)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Lihat detail',
-                    style: TextStyle(
-                      color: AppColors.ocean,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      return Card(
+        color: Colors.white,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
         ),
-      ),
-    );
+        child: InkWell(
+          onTap: () => _openDetail(destination),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (destination.imageUrl.isNotEmpty)
+                      Image.network(
+                        destination.imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _imageFallback(categoryColor, destination);
+                        },
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+
+                          return Container(
+                            color: categoryColor.withValues(alpha: 0.15),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        },
+                      )
+                    else
+                      _imageFallback(categoryColor, destination),
+
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Material(
+                        color: Colors.white,
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          tooltip: isFavorite
+                              ? 'Hapus dari favorit'
+                              : 'Tambahkan ke favorit',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _toggleFavorite(
+                            destination,
+                            provider,
+                          ),
+                          icon: Icon(
+                            isFavorite
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: AppColors.coral,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      bottom: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: categoryColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          destination.category,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      destination.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.dark,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: AppColors.muted,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            destination.location,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: AppColors.sunny,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(destination.rating.toStringAsFixed(1)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Lihat detail',
+                      style: TextStyle(
+                        color: AppColors.ocean,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget _imageFallback(
+      Color categoryColor,
+      Destination destination,
+    ) {
+      return Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              categoryColor.withValues(alpha: 0.65),
+              categoryColor,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Icon(
+          _categoryIcon(destination.category),
+          size: 65,
+          color: Colors.white,
+        ),
+      );
+    
   }
 
   Color _categoryColor(String category) {

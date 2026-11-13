@@ -141,60 +141,51 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, updateSheet) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Filter Destinasi',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.dark,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Pilih kategori destinasi yang ingin kamu jelajahi.',
-                    style: TextStyle(color: AppColors.muted),
-                  ),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      'Semua',
-                      ...categories.map(
-                        (category) => category['name'] as String,
-                      ),
-                    ].map((category) {
-                      final selected =
-                          _selectedCategory == category;
-
-                      return ChoiceChip(
-                        label: Text(category),
-                        selected: selected,
-                        selectedColor:
-                            AppColors.turquoise.withValues(alpha: 0.3),
-                        onSelected: (_) {
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-
-                          updateSheet(() {});
-                          Navigator.pop(sheetContext);
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filter Destinasi',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.dark,
+                ),
               ),
-            );
-          },
+              const SizedBox(height: 8),
+              const Text(
+                'Pilih kategori destinasi yang ingin kamu jelajahi.',
+                style: TextStyle(color: AppColors.muted),
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  'Semua',
+                  ...categories.map(
+                    (category) => category['name'] as String,
+                  ),
+                ].map((category) {
+                  return ChoiceChip(
+                    label: Text(category),
+                    selected: _selectedCategory == category,
+                    selectedColor:
+                        AppColors.turquoise.withValues(alpha: 0.3),
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                      Navigator.pop(sheetContext);
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -213,11 +204,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 final isCompact = screenWidth < 600;
                 final isExpanded = screenWidth >= 900;
                 final isWide = !isCompact;
-
                 final columns = isExpanded ? 3 : 2;
 
                 final filteredDestinations =
                     _filterDestinations(provider.destinations);
+
+                final heroDestination = provider.destinations.isNotEmpty
+                    ? provider.destinations.first
+                    : null;
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.only(bottom: 30),
@@ -230,12 +224,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           horizontal: isCompact ? 0 : 24,
                         ),
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildHeader(isWide),
                             _buildSearchBar(isWide),
-                            _buildHeroBanner(isWide),
+                            _buildHeroBanner(
+                              isWide,
+                              heroDestination,
+                            ),
                             _buildSectionTitle(
                               'Explore Categories',
                               'See all',
@@ -388,7 +384,6 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               if (_searchQuery.isNotEmpty)
                 IconButton(
-                  tooltip: 'Hapus pencarian',
                   onPressed: () {
                     _searchController.clear();
                     setState(() {
@@ -431,8 +426,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeroBanner(bool isWide) {
+  // Banner Home menggunakan foto destinasi pertama.
+  
+  Widget _buildHeroBanner(
+    bool isWide,
+    Destination? destination,
+  ) {
     final heroContent = Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
@@ -454,33 +455,33 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 17),
+        const SizedBox(height: 10),
         Text(
           'Explore the Beauty\nof Bali Island',
           style: TextStyle(
             color: Colors.white,
-            fontSize: isWide ? 30 : 24,
-            height: 1.2,
+            fontSize: isWide ? 28 : 23,
+            height: 1.15,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 9),
+        const SizedBox(height: 7),
         Text(
           'Find amazing places and create\nunforgettable memories.',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.9),
-            fontSize: 12,
-            height: 1.5,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            height: 1.3,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         ElevatedButton(
           onPressed: _openExplore,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: AppColors.ocean,
             elevation: 0,
-            minimumSize: const Size(125, 42),
+            minimumSize: const Size(120, 38),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(13),
@@ -495,62 +496,83 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 8 : 22),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(isWide ? 30 : 22),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              AppColors.ocean,
-              Color(0xFF279EAD),
-              AppColors.turquoise,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.ocean.withValues(alpha: 0.2),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: isWide
-            ? Row(
-                children: [
-                  Expanded(flex: 3, child: heroContent),
-                  const Expanded(
-                    flex: 2,
-                    child: Center(
-                      child: Icon(
-                        Icons.beach_access_rounded,
-                        size: 150,
-                        color: Color(0x55FFFFFF),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 8 : 22,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: SizedBox(
+          width: double.infinity,
+          height: isWide ? 290 : 280,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (destination != null &&
+                  destination.imageUrl.isNotEmpty)
+                Image.network(
+                  destination.imageUrl,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+
+                    return Container(
+                      color: AppColors.ocean,
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: AppColors.ocean,
+                      child: const Icon(
+                        Icons.beach_access_rounded,
+                        size: 100,
+                        color: Colors.white54,
+                      ),
+                    );
+                  },
+                )
+              else
+                Container(color: AppColors.ocean),
+
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.ocean.withValues(alpha: 0.88),
+                      AppColors.ocean.withValues(alpha: 0.48),
+                      Colors.black.withValues(alpha: 0.12),
+                    ],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                   ),
-                ],
-              )
-            : Stack(
-                children: [
-                  Positioned(
-                    right: -8,
-                    bottom: -15,
-                    child: Icon(
-                      Icons.beach_access_rounded,
-                      size: 125,
-                      color: Colors.white.withValues(alpha: 0.16),
-                    ),
-                  ),
-                  heroContent,
-                ],
+                ),
               ),
+
+              Padding(
+                padding: EdgeInsets.all(isWide ? 24 : 18),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: isWide ? 420 : 300,
+                      child: heroContent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+
 
   Widget _buildSectionTitle(
     String title,
@@ -625,49 +647,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return SizedBox(
       width: 76,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            setState(() {
-              _selectedCategory =
-                  isSelected ? 'Semua' : name;
-            });
-          },
-          child: Column(
-            children: [
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  color: color.withValues(
-                    alpha: isSelected ? 0.4 : 0.17,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: isSelected
-                      ? Border.all(color: color, width: 2)
-                      : null,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          setState(() {
+            _selectedCategory =
+                isSelected ? 'Semua' : name;
+          });
+        },
+        child: Column(
+          children: [
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                color: color.withValues(
+                  alpha: isSelected ? 0.4 : 0.17,
                 ),
-                child: Icon(
-                  category['icon'] as IconData,
-                  color: color,
-                  size: 29,
-                ),
+                borderRadius: BorderRadius.circular(20),
+                border: isSelected
+                    ? Border.all(color: color, width: 2)
+                    : null,
               ),
-              const SizedBox(height: 8),
-              Text(
-                name,
-                style: TextStyle(
-                  color: AppColors.dark,
-                  fontSize: 12,
-                  fontWeight: isSelected
-                      ? FontWeight.w800
-                      : FontWeight.w600,
-                ),
+              child: Icon(
+                category['icon'] as IconData,
+                color: color,
+                size: 29,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: TextStyle(
+                color: AppColors.dark,
+                fontSize: 12,
+                fontWeight: isSelected
+                    ? FontWeight.w800
+                    : FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -732,11 +751,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final icon = _categoryIcon(destination.category);
     final isFavorite = provider.isFavorite(destination.id);
 
-    return Material(
+    return Material(  
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
         onTap: () => _openDetail(destination),
         child: Container(
           decoration: BoxDecoration(
@@ -753,83 +772,91 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        color.withValues(alpha: 0.75),
-                        color,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      Center(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (destination.imageUrl.isNotEmpty)
+                      Image.network(
+                        destination.imageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+
+                          return Container(
+                            color: color.withValues(alpha: 0.2),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: color,
+                            child: Icon(
+                              icon,
+                              size: 65,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      )
+                    else
+                      Container(
+                        color: color,
                         child: Icon(
                           icon,
-                          size: 75,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          size: 65,
+                          color: Colors.white,
                         ),
                       ),
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            destination.rating >= 4.8
-                                ? 'Popular'
-                                : destination.category,
-                            style: const TextStyle(
-                              color: AppColors.dark,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
                         ),
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: CircleAvatar(
-                          radius: 17,
-                          backgroundColor: Colors.white,
-                          child: IconButton(
-                            tooltip: isFavorite
-                                ? 'Hapus dari favorit'
-                                : 'Tambahkan ke favorit',
-                            padding: EdgeInsets.zero,
-                            onPressed: () {
-                              _toggleFavorite(
-                                destination,
-                                provider,
-                              );
-                            },
-                            icon: Icon(
-                              isFavorite
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              color: AppColors.coral,
-                              size: 19,
-                            ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          destination.rating >= 4.8
+                              ? 'Popular'
+                              : destination.category,
+                          style: const TextStyle(
+                            color: AppColors.dark,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: CircleAvatar(
+                        radius: 17,
+                        backgroundColor: Colors.white,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            _toggleFavorite(destination, provider);
+                          },
+                          icon: Icon(
+                            isFavorite
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: AppColors.coral,
+                            size: 19,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Padding(

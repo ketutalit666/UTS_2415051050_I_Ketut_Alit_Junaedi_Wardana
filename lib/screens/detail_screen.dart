@@ -43,106 +43,187 @@ class _DetailScreenState extends State<DetailScreen> {
       appBar: AppBar(
         title: const Text('Destination Detail'),
         backgroundColor: AppColors.background,
+        foregroundColor: AppColors.dark,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 230,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.turquoise,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: const Icon(
-                Icons.landscape_rounded,
-                size: 110,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 22),
-            Text(
-              destination.name,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: AppColors.dark,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(
-                  Icons.location_on_rounded,
-                  color: AppColors.coral,
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    destination.location,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDestinationImage(destination),
+                  const SizedBox(height: 22),
+                  Text(
+                    destination.name,
                     style: const TextStyle(
-                      color: AppColors.muted,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.dark,
                     ),
                   ),
-                ),
-                const Icon(
-                  Icons.star_rounded,
-                  color: AppColors.sunny,
-                ),
-                Text(destination.rating.toString()),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'About Destination',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.dark,
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_rounded,
+                        color: AppColors.coral,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          destination.location,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.star_rounded,
+                        color: AppColors.sunny,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        destination.rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.dark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'About Destination',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.dark,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    destination.description,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      height: 1.7,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildWeatherSection(destination),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddItineraryScreen(
+                              destinationName: destination.name,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add_road_rounded),
+                      label: const Text('Add to My Trips'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.ocean,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              destination.description,
-              style: const TextStyle(
-                color: AppColors.muted,
-                height: 1.6,
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildWeatherSection(destination),
-            const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AddItineraryScreen(
-                        destinationName: destination.name,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDestinationImage(Destination destination) {
+    final categoryColor = _categoryColor(destination.category);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        width: double.infinity,
+        height: 270,
+        child: destination.imageUrl.isNotEmpty
+            ? Image.network(
+                destination.imageUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+
+                  return Container(
+                    color: categoryColor.withValues(alpha: 0.2),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.ocean,
                       ),
                     ),
                   );
                 },
-                icon: const Icon(Icons.add_road_rounded),
-                label: const Text('Add to My Trips'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.ocean,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+                errorBuilder: (context, error, stackTrace) {
+                  return _imageFallback(categoryColor);
+                },
+              )
+            : _imageFallback(categoryColor),
       ),
     );
+  }
+
+  Widget _imageFallback(Color color) {
+    return Container(
+      width: double.infinity,
+      height: 270,
+      color: color,
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.landscape_rounded,
+            size: 90,
+            color: Colors.white,
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Foto belum tersedia',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _categoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'pantai':
+        return const Color(0xFF64CCC5);
+      case 'alam':
+        return const Color(0xFF7BC67E);
+      case 'budaya':
+        return const Color(0xFFFFB86B);
+      case 'kuliner':
+        return const Color(0xFFFF8585);
+      default:
+        return AppColors.ocean;
+    }
   }
 
   Widget _buildWeatherSection(Destination destination) {
@@ -158,6 +239,13 @@ class _DetailScreenState extends State<DetailScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.dark.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
