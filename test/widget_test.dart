@@ -15,14 +15,14 @@ void main() {
       ChangeNotifierProvider(
         create: (_) => DestinationProvider(
           DestinationRepository(),
-        )..loadDestinations(),
+        ),
         child: const MaterialApp(
           home: HomeScreen(),
         ),
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('Discover Bali'), findsOneWidget);
