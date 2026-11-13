@@ -7,8 +7,91 @@ import '../providers/destination_provider.dart';
 import '../theme/app_colors.dart';
 import 'detail_screen.dart';
 
-class ExploreScreen extends StatelessWidget {
+class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
+
+  @override
+  State<ExploreScreen> createState() => _ExploreScreenState();
+}
+
+class _ExploreScreenState extends State<ExploreScreen> {
+  final TextEditingController _searchController =
+      TextEditingController();
+
+  String _searchQuery = '';
+  String _selectedCategory = 'Semua';
+
+  static const List<String> _categories = [
+    'Semua',
+    'Pantai',
+    'Alam',
+    'Budaya',
+    'Kuliner',
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Destination> _filterDestinations(
+    List<Destination> destinations,
+  ) {
+    return destinations.where((destination) {
+      final categoryMatches = _selectedCategory == 'Semua' ||
+          destination.category.toLowerCase() ==
+              _selectedCategory.toLowerCase();
+
+      final query = _searchQuery.toLowerCase();
+
+      final searchMatches =
+          destination.name.toLowerCase().contains(query) ||
+          destination.location.toLowerCase().contains(query);
+
+      return categoryMatches && searchMatches;
+    }).toList();
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _selectedCategory = 'Semua';
+    });
+  }
+
+  void _toggleFavorite(
+    Destination destination,
+    DestinationProvider provider,
+  ) {
+    final wasFavorite = provider.isFavorite(destination.id);
+
+    provider.toggleFavorite(destination.id);
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            wasFavorite
+                ? '${destination.name} dihapus dari favorit.'
+                : '${destination.name} ditambahkan ke favorit.',
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _openDetail(Destination destination) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetailScreen(destination: destination),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,86 +106,247 @@ class ExploreScreen extends StatelessWidget {
       ),
       body: Consumer<DestinationProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading) {
+          if (provider.isLoading &&
+              provider.destinations.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
-          if (provider.error != null) {
+          if (provider.error != null &&
+              provider.destinations.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(provider.error!),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: provider.loadDestinations,
-                    child: const Text('Coba Lagi'),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 42,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      provider.error!,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: provider.loadDestinations,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
-          if (provider.destinations.isEmpty) {
-            return const Center(
-              child: Text('Belum ada destinasi tersedia.'),
-            );
-          }
+          final destinations =
+              _filterDestinations(provider.destinations);
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = constraints.maxWidth >= 900
-                  ? 3
-                  : constraints.maxWidth >= 600
-                      ? 2
-                      : 1;
-
-              if (columns == 1) {
-                return ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: provider.destinations.length,
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.trim();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama atau lokasi destinasi...',
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.ocean,
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            tooltip: 'Hapus pencarian',
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                            icon: const Icon(Icons.close_rounded),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 52,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 6,
+                  ),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _categories.length,
+                  separatorBuilder: (_, index) =>
+                      const SizedBox(width: 8),
                   itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _destinationCard(
-                        context,
-                        provider.destinations[index],
-                        provider,
-                      ),
+                    final category = _categories[index];
+                    final selected =
+                        _selectedCategory == category;
+
+                    return ChoiceChip(
+                      label: Text(category),
+                      selected: selected,
+                      selectedColor: AppColors.turquoise
+                          .withValues(alpha: 0.35),
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedCategory = category;
+                        });
+                      },
                     );
                   },
-                );
-              }
-
-              return GridView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: provider.destinations.length,
-                gridDelegate:
-                    SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.95,
                 ),
-                itemBuilder: (context, index) {
-                  return _destinationCard(
-                    context,
-                    provider.destinations[index],
-                    provider,
-                  );
-                },
-              );
-            },
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${destinations.length} destinasi ditemukan',
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (_searchQuery.isNotEmpty ||
+                        _selectedCategory != 'Semua')
+                      TextButton(
+                        onPressed: _clearFilters,
+                        child: const Text('Reset filter'),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: destinations.isEmpty
+                    ? _buildEmptyState()
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final columns =
+                              constraints.maxWidth >= 900
+                                  ? 3
+                                  : constraints.maxWidth >= 600
+                                      ? 2
+                                      : 1;
+
+                          if (columns == 1) {
+                            return ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                4,
+                                20,
+                                20,
+                              ),
+                              itemCount: destinations.length,
+                              itemBuilder: (context, index) {
+                                final destination =
+                                    destinations[index];
+
+                                return SizedBox(
+                                  height: 230,
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.only(
+                                      bottom: 14,
+                                    ),
+                                    child: _destinationCard(
+                                      destination,
+                                      provider,
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(20),
+                            itemCount: destinations.length,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columns,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio:
+                                  constraints.maxWidth >= 900
+                                      ? 1.15
+                                      : 1.0,
+                            ),
+                            itemBuilder: (context, index) {
+                              return _destinationCard(
+                                destinations[index],
+                                provider,
+                              );
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.search_off_rounded,
+              size: 52,
+              color: AppColors.muted,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Destinasi tidak ditemukan.',
+              style: TextStyle(
+                color: AppColors.dark,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Coba kata kunci atau kategori lainnya.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.muted),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _clearFilters,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Reset pencarian'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _destinationCard(
-    BuildContext context,
     Destination destination,
     DestinationProvider provider,
   ) {
@@ -115,23 +359,24 @@ class ExploreScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DetailScreen(
-                destination: destination,
-              ),
-            ),
-          );
-        },
+        onTap: () => _openDetail(destination),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Container(
                 width: double.infinity,
-                color: _categoryColor(destination.category),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      _categoryColor(destination.category)
+                          .withValues(alpha: 0.75),
+                      _categoryColor(destination.category),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
                 child: Icon(
                   _categoryIcon(destination.category),
                   size: 75,
@@ -158,14 +403,18 @@ class ExploreScreen extends StatelessWidget {
                         ),
                       ),
                       IconButton(
+                        tooltip: isFavorite
+                            ? 'Hapus dari favorit'
+                            : 'Tambahkan ke favorit',
                         visualDensity: VisualDensity.compact,
-                        onPressed: () {
-                          provider.toggleFavorite(destination.id);
-                        },
+                        onPressed: () => _toggleFavorite(
+                          destination,
+                          provider,
+                        ),
                         icon: Icon(
                           isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border,
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
                           color: AppColors.coral,
                         ),
                       ),
@@ -182,6 +431,8 @@ class ExploreScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           destination.location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: AppColors.muted,
                             fontSize: 12,
@@ -193,7 +444,7 @@ class ExploreScreen extends StatelessWidget {
                         size: 16,
                         color: AppColors.sunny,
                       ),
-                      Text(destination.rating.toString()),
+                      Text(destination.rating.toStringAsFixed(1)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -218,8 +469,12 @@ class ExploreScreen extends StatelessWidget {
     switch (category.toLowerCase()) {
       case 'pantai':
         return AppColors.turquoise;
+      case 'alam':
+        return const Color(0xFF7BC67E);
       case 'budaya':
         return AppColors.coral;
+      case 'kuliner':
+        return const Color(0xFFFF8585);
       default:
         return AppColors.ocean;
     }
@@ -229,10 +484,14 @@ class ExploreScreen extends StatelessWidget {
     switch (category.toLowerCase()) {
       case 'pantai':
         return Icons.waves_rounded;
+      case 'alam':
+        return Icons.landscape_rounded;
       case 'budaya':
         return Icons.temple_hindu_rounded;
+      case 'kuliner':
+        return Icons.restaurant_rounded;
       default:
-        return Icons.landscape_rounded;
+        return Icons.place_rounded;
     }
   }
 }

@@ -79,6 +79,40 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _clearFilters() {
+    _searchController.clear();
+
+    setState(() {
+      _searchQuery = '';
+      _selectedCategory = 'Semua';
+    });
+  }
+
+  void _toggleFavorite(
+    Destination destination,
+    DestinationProvider provider,
+  ) {
+    final wasFavorite = provider.isFavorite(destination.id);
+
+    provider.toggleFavorite(destination.id);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            wasFavorite
+                ? '${destination.name} dihapus dari favorit.'
+                : '${destination.name} ditambahkan ke favorit.',
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   List<Destination> _filterDestinations(
     List<Destination> destinations,
   ) {
@@ -107,53 +141,60 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       builder: (sheetContext) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filter Destinasi',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.dark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Pilih kategori destinasi yang ingin kamu jelajahi.',
-                style: TextStyle(color: AppColors.muted),
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
+        return StatefulBuilder(
+          builder: (context, updateSheet) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 30),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  'Semua',
-                  ...categories.map(
-                    (category) => category['name'] as String,
+                  const Text(
+                    'Filter Destinasi',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.dark,
+                    ),
                   ),
-                ].map((category) {
-                  final selected = _selectedCategory == category;
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pilih kategori destinasi yang ingin kamu jelajahi.',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      'Semua',
+                      ...categories.map(
+                        (category) => category['name'] as String,
+                      ),
+                    ].map((category) {
+                      final selected =
+                          _selectedCategory == category;
 
-                  return ChoiceChip(
-                    label: Text(category),
-                    selected: selected,
-                    selectedColor:
-                        AppColors.turquoise.withValues(alpha: 0.3),
-                    onSelected: (_) {
-                      setState(() {
-                        _selectedCategory = category;
-                      });
-                      Navigator.pop(sheetContext);
-                    },
-                  );
-                }).toList(),
+                      return ChoiceChip(
+                        label: Text(category),
+                        selected: selected,
+                        selectedColor:
+                            AppColors.turquoise.withValues(alpha: 0.3),
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedCategory = category;
+                          });
+
+                          updateSheet(() {});
+                          Navigator.pop(sheetContext);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -213,8 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const Padding(
                                 padding: EdgeInsets.all(40),
                                 child: Center(
-                                  child:
-                                      CircularProgressIndicator(),
+                                  child: CircularProgressIndicator(),
                                 ),
                               )
                             else if (provider.error != null &&
@@ -343,20 +383,40 @@ class _HomeScreenState extends State<HomeScreen> {
             Icons.search_rounded,
             color: AppColors.ocean,
           ),
-          suffixIcon: IconButton(
-            onPressed: _showFilterSheet,
-            icon: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: AppColors.ocean,
-                borderRadius: BorderRadius.circular(12),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_searchQuery.isNotEmpty)
+                IconButton(
+                  tooltip: 'Hapus pencarian',
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: AppColors.muted,
+                  ),
+                ),
+              IconButton(
+                tooltip: 'Filter kategori',
+                onPressed: _showFilterSheet,
+                icon: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.ocean,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.tune_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.tune_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
+            ],
           ),
           filled: true,
           fillColor: Colors.white,
@@ -748,10 +808,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           radius: 17,
                           backgroundColor: Colors.white,
                           child: IconButton(
+                            tooltip: isFavorite
+                                ? 'Hapus dari favorit'
+                                : 'Tambahkan ke favorit',
                             padding: EdgeInsets.zero,
                             onPressed: () {
-                              provider.toggleFavorite(
-                                destination.id,
+                              _toggleFavorite(
+                                destination,
+                                provider,
                               );
                             },
                             icon: Icon(
@@ -875,9 +939,10 @@ class _HomeScreenState extends State<HomeScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: provider.loadDestinations,
-              child: const Text('Coba Lagi'),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Coba Lagi'),
             ),
           ],
         ),
@@ -886,20 +951,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Padding(
-      padding: EdgeInsets.all(30),
+    return Padding(
+      padding: const EdgeInsets.all(30),
       child: Center(
         child: Column(
           children: [
-            Icon(
+            const Icon(
               Icons.search_off_rounded,
               size: 42,
               color: AppColors.muted,
             ),
-            SizedBox(height: 10),
-            Text(
+            const SizedBox(height: 10),
+            const Text(
               'Destinasi tidak ditemukan.',
               style: TextStyle(color: AppColors.muted),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: _clearFilters,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Reset pencarian dan filter'),
             ),
           ],
         ),
