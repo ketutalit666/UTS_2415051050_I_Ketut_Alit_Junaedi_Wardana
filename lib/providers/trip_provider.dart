@@ -2,9 +2,14 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/trip_plan.dart';
+import '../repositories/trip_repository.dart';
 
 class TripProvider extends ChangeNotifier {
-  final List<TripPlan> _trips = [];
+  final TripRepository repository;
+
+  TripProvider(this.repository);
+
+  List<TripPlan> _trips = [];
 
   bool _isLoading = false;
   String? _error;
@@ -15,6 +20,24 @@ class TripProvider extends ChangeNotifier {
 
   String? get error => _error;
 
+  // Mengambil data itinerary dari Supabase.
+  Future<void> loadTrips() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _trips = await repository.getTripPlans();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Operasi lokal sementara.
+  // Akan diganti dengan operasi database pada tahap 10–12.
   void addTrip(TripPlan trip) {
     _trips.add(trip);
     notifyListeners();
@@ -25,9 +48,7 @@ class TripProvider extends ChangeNotifier {
       (trip) => trip.id == updatedTrip.id,
     );
 
-    if (index == -1) {
-      return;
-    }
+    if (index == -1) return;
 
     _trips[index] = updatedTrip;
     notifyListeners();
@@ -35,16 +56,6 @@ class TripProvider extends ChangeNotifier {
 
   void deleteTrip(int id) {
     _trips.removeWhere((trip) => trip.id == id);
-    notifyListeners();
-  }
-
-  void setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
-
-  void setError(String? message) {
-    _error = message;
     notifyListeners();
   }
 }
