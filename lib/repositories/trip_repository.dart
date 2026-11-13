@@ -10,4 +10,8 @@ class TripRepository {
   Future<List<TripPlan>> getTripPlans() {
     return service.getTripPlans();
   }
+
+  Future<TripPlan> createTrip(TripPlan trip) {
+    return service.createTrip(trip);
+  }
 }

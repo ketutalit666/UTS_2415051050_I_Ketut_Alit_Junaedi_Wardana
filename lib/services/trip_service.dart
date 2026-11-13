@@ -20,4 +20,21 @@ class TripService {
         )
         .toList();
   }
+
+  Future<TripPlan> createTrip(TripPlan trip) async {
+    final response = await _client
+        .from('trip_plans')
+        .insert({
+          'destination_name': trip.destinationName,
+          'visit_date': trip.visitDate.toIso8601String().split('T').first,
+          'notes': trip.notes,
+          'status': trip.status,
+        })
+        .select()
+        .single();
+
+    return TripPlan.fromJson(
+      Map<String, dynamic>.from(response),
+    );
+  }
 }

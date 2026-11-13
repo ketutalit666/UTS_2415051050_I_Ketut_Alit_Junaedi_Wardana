@@ -20,7 +20,6 @@ class TripProvider extends ChangeNotifier {
 
   String? get error => _error;
 
-  // Mengambil data itinerary dari Supabase.
   Future<void> loadTrips() async {
     _isLoading = true;
     _error = null;
@@ -36,11 +35,25 @@ class TripProvider extends ChangeNotifier {
     }
   }
 
-  // Operasi lokal sementara.
-  // Akan diganti dengan operasi database pada tahap 10–12.
-  void addTrip(TripPlan trip) {
-    _trips.add(trip);
+  Future<bool> createTrip(TripPlan trip) async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
+
+    try {
+      final newTrip = await repository.createTrip(trip);
+
+      _trips.insert(0, newTrip);
+
+      return true;
+    } catch (e) {
+      _error = e.toString();
+
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void updateTrip(TripPlan updatedTrip) {
