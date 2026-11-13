@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/trip_plan.dart';
 import '../providers/destination_provider.dart';
 import '../providers/trip_provider.dart';
 import '../theme/app_colors.dart';
@@ -10,6 +11,61 @@ import 'edit_itinerary_screen.dart';
 
 class MyTripsScreen extends StatelessWidget {
   const MyTripsScreen({super.key});
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    TripPlan trip,
+    TripProvider provider,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Itinerary?'),
+          content: Text(
+            'Are you sure you want to delete '
+            '${trip.destinationName}?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.coral,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final success = await provider.deleteTrip(trip.id!);
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Itinerary deleted successfully!'
+              : 'Failed to delete itinerary. Please try again.',
+        ),
+        backgroundColor:
+            success ? Colors.green : Colors.red,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +93,6 @@ class MyTripsScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -79,7 +134,6 @@ class MyTripsScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Planned Trips Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -107,7 +161,6 @@ class MyTripsScreen extends StatelessWidget {
                 ],
               ),
 
-              // Loading State
               if (tripProvider.isLoading && trips.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(30),
@@ -115,8 +168,6 @@ class MyTripsScreen extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   ),
                 )
-
-              // Error State
               else if (tripProvider.error != null &&
                   trips.isEmpty)
                 Card(
@@ -155,8 +206,6 @@ class MyTripsScreen extends StatelessWidget {
                     ),
                   ),
                 )
-
-              // Empty State
               else if (trips.isEmpty)
                 const Card(
                   color: Colors.white,
@@ -189,15 +238,14 @@ class MyTripsScreen extends StatelessWidget {
                     ),
                   ),
                 )
-
-              // Trip List
               else
                 ...trips.map(
                   (trip) => Card(
                     color: Colors.white,
                     margin: const EdgeInsets.only(bottom: 10),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding:
+                          const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 8,
                       ),
@@ -233,23 +281,42 @@ class MyTripsScreen extends StatelessWidget {
                       isThreeLine: true,
                       trailing: trip.id == null
                           ? null
-                          : IconButton(
-                              tooltip: 'Edit itinerary',
-                              icon: const Icon(
-                                Icons.edit_rounded,
-                                color: AppColors.ocean,
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        EditItineraryScreen(
-                                      trip: trip,
-                                    ),
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Edit itinerary',
+                                  icon: const Icon(
+                                    Icons.edit_rounded,
+                                    color: AppColors.ocean,
                                   ),
-                                );
-                              },
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            EditItineraryScreen(
+                                          trip: trip,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  tooltip: 'Delete itinerary',
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: AppColors.coral,
+                                  ),
+                                  onPressed: tripProvider.isLoading
+                                      ? null
+                                      : () => _confirmDelete(
+                                            context,
+                                            trip,
+                                            tripProvider,
+                                          ),
+                                ),
+                              ],
                             ),
                     ),
                   ),
@@ -257,7 +324,6 @@ class MyTripsScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Favorite Destinations Header
               const Text(
                 'Favorite Destinations',
                 style: TextStyle(
@@ -269,7 +335,6 @@ class MyTripsScreen extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              // Favorite Empty State
               if (favorites.isEmpty)
                 const Card(
                   color: Colors.white,
@@ -284,8 +349,6 @@ class MyTripsScreen extends StatelessWidget {
                     ),
                   ),
                 )
-
-              // Favorite List
               else
                 ...favorites.map(
                   (destination) => Card(

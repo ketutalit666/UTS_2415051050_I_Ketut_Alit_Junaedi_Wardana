@@ -79,8 +79,25 @@ class TripProvider extends ChangeNotifier {
     }
   }
 
-  void deleteTrip(int id) {
-    _trips.removeWhere((trip) => trip.id == id);
+  Future<bool> deleteTrip(int id) async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
+
+    try {
+      await repository.deleteTrip(id);
+
+      _trips.removeWhere(
+        (trip) => trip.id == id,
+      );
+
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

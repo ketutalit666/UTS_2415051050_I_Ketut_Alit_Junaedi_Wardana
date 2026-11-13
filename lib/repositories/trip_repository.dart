@@ -18,4 +18,8 @@ class TripRepository {
   Future<TripPlan> updateTrip(TripPlan trip) {
     return service.updateTrip(trip);
   }
+
+  Future<void> deleteTrip(int id) {
+    return service.deleteTrip(id);
+  }
 }

@@ -61,4 +61,18 @@ class TripService {
       Map<String, dynamic>.from(response),
     );
   }
+
+  Future<void> deleteTrip(int id) async {
+    final response = await _client
+        .from('trip_plans')
+        .delete()
+        .eq('id', id)
+        .select('id');
+
+    if (response.isEmpty) {
+      throw Exception(
+        'Trip was not deleted. Check database permissions.',
+      );
+    }
+  }
 }
