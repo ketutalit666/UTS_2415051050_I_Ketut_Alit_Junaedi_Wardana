@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -66,7 +65,7 @@ class _EditItineraryScreenState
       lastDate: DateTime(2100),
     );
 
-    if (selectedDate != null) {
+    if (selectedDate != null && mounted) {
       setState(() {
         _visitDate = selectedDate;
       });
@@ -215,27 +214,38 @@ class _EditItineraryScreenState
 
               Consumer<TripProvider>(
                 builder: (context, provider, child) {
+                  final isUpdating = provider.isUpdating;
+
                   return SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: provider.isLoading
-                          ? null
-                          : _updateItinerary,
+                      onPressed:
+                          isUpdating ? null : _updateItinerary,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.ocean,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            AppColors.ocean.withValues(alpha: 0.7),
                         padding: const EdgeInsets.symmetric(
                           vertical: 15,
                         ),
                       ),
-                      child: provider.isLoading
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                      child: isUpdating
+                          ? const Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Text('Updating Itinerary...'),
+                              ],
                             )
                           : const Text('Update Itinerary'),
                     ),

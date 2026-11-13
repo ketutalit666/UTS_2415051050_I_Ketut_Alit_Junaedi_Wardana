@@ -54,7 +54,7 @@ class _AddItineraryScreenState extends State<AddItineraryScreen> {
       lastDate: DateTime(now.year + 5),
     );
 
-    if (selectedDate != null) {
+    if (selectedDate != null && mounted) {
       setState(() {
         _visitDate = selectedDate;
       });
@@ -81,7 +81,8 @@ class _AddItineraryScreenState extends State<AddItineraryScreen> {
       notes: _notesController.text.trim(),
     );
 
-    final success = await context.read<TripProvider>().createTrip(trip);
+    final success =
+        await context.read<TripProvider>().createTrip(trip);
 
     if (!mounted) return;
 
@@ -188,27 +189,38 @@ class _AddItineraryScreenState extends State<AddItineraryScreen> {
 
               Consumer<TripProvider>(
                 builder: (context, provider, child) {
+                  final isSaving = provider.isCreating;
+
                   return SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: provider.isLoading
-                          ? null
-                          : _saveItinerary,
+                      onPressed:
+                          isSaving ? null : _saveItinerary,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.ocean,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            AppColors.ocean.withValues(alpha: 0.7),
                         padding: const EdgeInsets.symmetric(
                           vertical: 15,
                         ),
                       ),
-                      child: provider.isLoading
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                      child: isSaving
+                          ? const Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Text('Saving Itinerary...'),
+                              ],
                             )
                           : const Text('Save Itinerary'),
                     ),

@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 
 import '../models/trip_plan.dart';
@@ -12,15 +11,53 @@ class TripProvider extends ChangeNotifier {
   List<TripPlan> _trips = [];
 
   bool _isLoading = false;
+  bool _isCreating = false;
+  bool _isUpdating = false;
+  bool _isDeleting = false;
+
+  int? _deletingTripId;
+
   String? _error;
 
   List<TripPlan> get trips => List.unmodifiable(_trips);
 
   bool get isLoading => _isLoading;
+  bool get isCreating => _isCreating;
+  bool get isUpdating => _isUpdating;
+  bool get isDeleting => _isDeleting;
+
+  int? get deletingTripId => _deletingTripId;
+
+  bool get isMutating =>
+      _isCreating || _isUpdating || _isDeleting;
 
   String? get error => _error;
 
+  String _friendlyError(Object error) {
+    final message = error.toString().toLowerCase();
+
+    if (message.contains('socketexception') ||
+        message.contains('network') ||
+        message.contains('connection')) {
+      return 'Koneksi internet bermasalah. Periksa jaringan Anda.';
+    }
+
+    if (message.contains('timeout')) {
+      return 'Permintaan terlalu lama. Silakan coba kembali.';
+    }
+
+    if (message.contains('permission') ||
+        message.contains('row-level security') ||
+        message.contains('42501')) {
+      return 'Akses database ditolak. Periksa izin database.';
+    }
+
+    return 'Terjadi kesalahan saat mengakses database. Silakan coba kembali.';
+  }
+
   Future<void> loadTrips() async {
+    if (_isLoading || isMutating) return;
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -28,7 +65,7 @@ class TripProvider extends ChangeNotifier {
     try {
       _trips = await repository.getTripPlans();
     } catch (e) {
-      _error = e.toString();
+      _error = _friendlyError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -36,7 +73,9 @@ class TripProvider extends ChangeNotifier {
   }
 
   Future<bool> createTrip(TripPlan trip) async {
-    _isLoading = true;
+    if (isMutating) return false;
+
+    _isCreating = true;
     _error = null;
     notifyListeners();
 
@@ -45,16 +84,18 @@ class TripProvider extends ChangeNotifier {
       _trips.insert(0, newTrip);
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _friendlyError(e);
       return false;
     } finally {
-      _isLoading = false;
+      _isCreating = false;
       notifyListeners();
     }
   }
 
   Future<bool> updateTrip(TripPlan trip) async {
-    _isLoading = true;
+    if (isMutating) return false;
+
+    _isUpdating = true;
     _error = null;
     notifyListeners();
 
@@ -71,16 +112,19 @@ class TripProvider extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _friendlyError(e);
       return false;
     } finally {
-      _isLoading = false;
+      _isUpdating = false;
       notifyListeners();
     }
   }
 
   Future<bool> deleteTrip(int id) async {
-    _isLoading = true;
+    if (isMutating) return false;
+
+    _isDeleting = true;
+    _deletingTripId = id;
     _error = null;
     notifyListeners();
 
@@ -93,10 +137,11 @@ class TripProvider extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _friendlyError(e);
       return false;
     } finally {
-      _isLoading = false;
+      _isDeleting = false;
+      _deletingTripId = null;
       notifyListeners();
     }
   }

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -61,8 +60,7 @@ class MyTripsScreen extends StatelessWidget {
               ? 'Itinerary deleted successfully!'
               : 'Failed to delete itinerary. Please try again.',
         ),
-        backgroundColor:
-            success ? Colors.green : Colors.red,
+        backgroundColor: success ? Colors.green : Colors.red,
       ),
     );
   }
@@ -89,6 +87,7 @@ class MyTripsScreen extends StatelessWidget {
         ) {
           final trips = tripProvider.trips;
           final favorites = destinationProvider.favorites;
+          final isMutating = tripProvider.isMutating;
 
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -146,15 +145,17 @@ class MyTripsScreen extends StatelessWidget {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const AddItineraryScreen(),
-                        ),
-                      );
-                    },
+                    onPressed: isMutating
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const AddItineraryScreen(),
+                              ),
+                            );
+                          },
                     icon: const Icon(Icons.add),
                     label: const Text('Add New'),
                   ),
@@ -198,7 +199,9 @@ class MyTripsScreen extends StatelessWidget {
                           ),
                         ),
                         TextButton.icon(
-                          onPressed: tripProvider.loadTrips,
+                          onPressed: tripProvider.isLoading
+                              ? null
+                              : tripProvider.loadTrips,
                           icon: const Icon(Icons.refresh),
                           label: const Text('Try Again'),
                         ),
@@ -240,86 +243,103 @@ class MyTripsScreen extends StatelessWidget {
                 )
               else
                 ...trips.map(
-                  (trip) => Card(
-                    color: Colors.white,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      leading: const CircleAvatar(
-                        backgroundColor: Color(0x2264CCC5),
-                        child: Icon(
-                          Icons.luggage_rounded,
-                          color: AppColors.ocean,
+                  (trip) {
+                    final isThisTripDeleting =
+                        tripProvider.deletingTripId == trip.id;
+
+                    return Card(
+                      color: Colors.white,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
                         ),
-                      ),
-                      title: Text(
-                        trip.destinationName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.dark,
-                        ),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 5),
-                        child: Text(
-                          '${trip.visitDate.day}/'
-                          '${trip.visitDate.month}/'
-                          '${trip.visitDate.year} • '
-                          '${trip.status}\n'
-                          '${trip.notes}',
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.muted,
+                        leading: const CircleAvatar(
+                          backgroundColor: Color(0x2264CCC5),
+                          child: Icon(
+                            Icons.luggage_rounded,
+                            color: AppColors.ocean,
                           ),
                         ),
-                      ),
-                      isThreeLine: true,
-                      trailing: trip.id == null
-                          ? null
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  tooltip: 'Edit itinerary',
-                                  icon: const Icon(
-                                    Icons.edit_rounded,
-                                    color: AppColors.ocean,
-                                  ),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            EditItineraryScreen(
-                                          trip: trip,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  tooltip: 'Delete itinerary',
-                                  icon: const Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: AppColors.coral,
-                                  ),
-                                  onPressed: tripProvider.isLoading
-                                      ? null
-                                      : () => _confirmDelete(
-                                            context,
-                                            trip,
-                                            tripProvider,
-                                          ),
-                                ),
-                              ],
+                        title: Text(
+                          trip.destinationName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dark,
+                          ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 5),
+                          child: Text(
+                            '${trip.visitDate.day}/'
+                            '${trip.visitDate.month}/'
+                            '${trip.visitDate.year} • '
+                            '${trip.status}\n'
+                            '${trip.notes}',
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.muted,
                             ),
-                    ),
-                  ),
+                          ),
+                        ),
+                        isThreeLine: true,
+                        trailing: trip.id == null
+                            ? null
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Edit itinerary',
+                                    icon: const Icon(
+                                      Icons.edit_rounded,
+                                      color: AppColors.ocean,
+                                    ),
+                                    onPressed: isMutating
+                                        ? null
+                                        : () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    EditItineraryScreen(
+                                                  trip: trip,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Delete itinerary',
+                                    onPressed: isMutating
+                                        ? null
+                                        : () => _confirmDelete(
+                                              context,
+                                              trip,
+                                              tripProvider,
+                                            ),
+                                    icon: isThisTripDeleting
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child:
+                                                CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: AppColors.coral,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: AppColors.coral,
+                                          ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    );
+                  },
                 ),
 
               const SizedBox(height: 24),

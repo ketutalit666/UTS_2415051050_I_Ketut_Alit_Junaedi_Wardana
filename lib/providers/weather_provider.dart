@@ -26,6 +26,27 @@ class WeatherProvider extends ChangeNotifier {
     return _errors[destinationId];
   }
 
+  String _friendlyError(Object error) {
+    final message = error.toString().toLowerCase();
+
+    if (message.contains('socketexception') ||
+        message.contains('failed host lookup') ||
+        message.contains('connection')) {
+      return 'Tidak dapat terhubung ke internet. Periksa koneksi Anda.';
+    }
+
+    if (message.contains('timeout')) {
+      return 'Permintaan data cuaca terlalu lama. Coba kembali.';
+    }
+
+    if (message.contains('format') ||
+        message.contains('json')) {
+      return 'Format data cuaca tidak valid.';
+    }
+
+    return 'Informasi cuaca belum dapat dimuat. Silakan coba kembali.';
+  }
+
   Future<void> loadWeather(Destination destination) async {
     final id = destination.id;
 
@@ -43,14 +64,14 @@ class WeatherProvider extends ChangeNotifier {
 
       _weatherData[id] = weather;
     } catch (e) {
-      _errors[id] = e.toString();
+      _errors[id] = _friendlyError(e);
     } finally {
       _loadingIds.remove(id);
       notifyListeners();
     }
   }
 
-  void retryWeather(Destination destination) {
-    loadWeather(destination);
+  Future<void> retryWeather(Destination destination) async {
+    await loadWeather(destination);
   }
 }
