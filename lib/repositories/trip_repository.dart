@@ -14,4 +14,8 @@ class TripRepository {
   Future<TripPlan> createTrip(TripPlan trip) {
     return service.createTrip(trip);
   }
+
+  Future<TripPlan> updateTrip(TripPlan trip) {
+    return service.updateTrip(trip);
+  }
 }

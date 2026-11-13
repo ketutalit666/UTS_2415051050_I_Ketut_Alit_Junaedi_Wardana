@@ -26,10 +26,34 @@ class TripService {
         .from('trip_plans')
         .insert({
           'destination_name': trip.destinationName,
-          'visit_date': trip.visitDate.toIso8601String().split('T').first,
+          'visit_date':
+              trip.visitDate.toIso8601String().split('T').first,
           'notes': trip.notes,
           'status': trip.status,
         })
+        .select()
+        .single();
+
+    return TripPlan.fromJson(
+      Map<String, dynamic>.from(response),
+    );
+  }
+
+  Future<TripPlan> updateTrip(TripPlan trip) async {
+    if (trip.id == null) {
+      throw Exception('Trip ID is missing.');
+    }
+
+    final response = await _client
+        .from('trip_plans')
+        .update({
+          'destination_name': trip.destinationName,
+          'visit_date':
+              trip.visitDate.toIso8601String().split('T').first,
+          'notes': trip.notes,
+          'status': trip.status,
+        })
+        .eq('id', trip.id!)
         .select()
         .single();
 

@@ -18,18 +18,26 @@ class MyTripsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'My Trips',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: AppColors.background,
       ),
       body: Consumer2<TripProvider, DestinationProvider>(
-        builder: (context, tripProvider, destinationProvider, child) {
+        builder: (
+          context,
+          tripProvider,
+          destinationProvider,
+          child,
+        ) {
           final trips = tripProvider.trips;
           final favorites = destinationProvider.favorites;
 
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              // Header
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -61,12 +69,17 @@ class MyTripsScreen extends StatelessWidget {
                     SizedBox(height: 5),
                     Text(
                       'Organize your favorite Bali destinations.',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 24),
+
+              // Planned Trips Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -83,7 +96,8 @@ class MyTripsScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const AddItineraryScreen(),
+                          builder: (_) =>
+                              const AddItineraryScreen(),
                         ),
                       );
                     },
@@ -92,7 +106,58 @@ class MyTripsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              if (trips.isEmpty)
+
+              // Loading State
+              if (tripProvider.isLoading && trips.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(30),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+
+              // Error State
+              else if (tripProvider.error != null &&
+                  trips.isEmpty)
+                Card(
+                  color: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: AppColors.coral,
+                          size: 40,
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Failed to load trips',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.dark,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          tripProvider.error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: tripProvider.loadTrips,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Try Again'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+
+              // Empty State
+              else if (trips.isEmpty)
                 const Card(
                   color: Colors.white,
                   child: Padding(
@@ -116,17 +181,26 @@ class MyTripsScreen extends StatelessWidget {
                         Text(
                           'Start planning your Bali adventure!',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.muted),
+                          style: TextStyle(
+                            color: AppColors.muted,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 )
+
+              // Trip List
               else
                 ...trips.map(
                   (trip) => Card(
                     color: Colors.white,
+                    margin: const EdgeInsets.only(bottom: 10),
                     child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       leading: const CircleAvatar(
                         backgroundColor: Color(0x2264CCC5),
                         child: Icon(
@@ -138,16 +212,29 @@ class MyTripsScreen extends StatelessWidget {
                         trip.destinationName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
+                          color: AppColors.dark,
                         ),
                       ),
-                      subtitle: Text(
-                        '${trip.visitDate.day}/'
-                        '${trip.visitDate.month}/'
-                        '${trip.visitDate.year} • ${trip.status}',
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: Text(
+                          '${trip.visitDate.day}/'
+                          '${trip.visitDate.month}/'
+                          '${trip.visitDate.year} • '
+                          '${trip.status}\n'
+                          '${trip.notes}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                          ),
+                        ),
                       ),
+                      isThreeLine: true,
                       trailing: trip.id == null
                           ? null
                           : IconButton(
+                              tooltip: 'Edit itinerary',
                               icon: const Icon(
                                 Icons.edit_rounded,
                                 color: AppColors.ocean,
@@ -156,12 +243,9 @@ class MyTripsScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => EditItineraryScreen(
-                                      destinationName:
-                                          trip.destinationName,
-                                      travelDate:
-                                          trip.visitDate.toString(),
-                                      notes: trip.notes,
+                                    builder: (_) =>
+                                        EditItineraryScreen(
+                                      trip: trip,
                                     ),
                                   ),
                                 );
@@ -170,7 +254,10 @@ class MyTripsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+
               const SizedBox(height: 24),
+
+              // Favorite Destinations Header
               const Text(
                 'Favorite Destinations',
                 style: TextStyle(
@@ -179,7 +266,10 @@ class MyTripsScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 10),
+
+              // Favorite Empty State
               if (favorites.isEmpty)
                 const Card(
                   color: Colors.white,
@@ -188,10 +278,14 @@ class MyTripsScreen extends StatelessWidget {
                     child: Text(
                       'Belum ada destinasi favorit. '
                       'Tambahkan favorit melalui halaman Explore.',
-                      style: TextStyle(color: AppColors.muted),
+                      style: TextStyle(
+                        color: AppColors.muted,
+                      ),
                     ),
                   ),
                 )
+
+              // Favorite List
               else
                 ...favorites.map(
                   (destination) => Card(

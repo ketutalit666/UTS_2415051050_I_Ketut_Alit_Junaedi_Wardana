@@ -42,13 +42,10 @@ class TripProvider extends ChangeNotifier {
 
     try {
       final newTrip = await repository.createTrip(trip);
-
       _trips.insert(0, newTrip);
-
       return true;
     } catch (e) {
       _error = e.toString();
-
       return false;
     } finally {
       _isLoading = false;
@@ -56,15 +53,30 @@ class TripProvider extends ChangeNotifier {
     }
   }
 
-  void updateTrip(TripPlan updatedTrip) {
-    final index = _trips.indexWhere(
-      (trip) => trip.id == updatedTrip.id,
-    );
-
-    if (index == -1) return;
-
-    _trips[index] = updatedTrip;
+  Future<bool> updateTrip(TripPlan trip) async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
+
+    try {
+      final updatedTrip = await repository.updateTrip(trip);
+
+      final index = _trips.indexWhere(
+        (item) => item.id == updatedTrip.id,
+      );
+
+      if (index != -1) {
+        _trips[index] = updatedTrip;
+      }
+
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void deleteTrip(int id) {
